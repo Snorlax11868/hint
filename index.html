@@ -1,1 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Secure Multi-Page Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">Secure Entry Portal</h1>
 
+    <!-- Formal countdown message -->
+    <p id="countdown" class="countdown">Loading...</p>
+
+    <!-- Password input -->
+    <div id="password-box" class="password-box">
+      <label for="password-input">Enter Access Password:</label>
+      <input id="password-input" type="password" autocomplete="off" placeholder="Enter password" />
+      <button id="submit-btn">Submit</button>
+    </div>
+
+    <!-- Content area revealed after success -->
+    <div id="content" class="content hidden">
+      <p id="typed-text" class="typed-text"></p>
+    </div>
+
+    <p class="note">Tip: passwords are stored locally in your browser so you won't need to re-enter them.</p>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
