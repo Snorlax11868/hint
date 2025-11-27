@@ -1,1 +1,36 @@
+/* Dark-mode layout */
+:root{
+  --bg: #0b0c10;
+  --panel: #0f1115;
+  --muted: #9aa3b2;
+  --text: #e6eef8;
+  --accent: #8b6cf6;
+}
 
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+body{background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;padding:28px}
+
+.container{
+  width:92%;max-width:720px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));
+  border-radius:12px;padding:24px;box-shadow:0 8px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)
+}
+
+.title{font-size:20px;margin:0 0 10px 0;color:var(--text);text-align:center}
+.countdown{font-size:14px;color:var(--muted);text-align:center;margin-bottom:16px}
+
+.password-box{display:flex;gap:8px;align-items:center;justify-content:center;margin-bottom:12px}
+.password-box label{display:none} /* visually hide label (input has placeholder) */
+
+#password-input{
+  width:60%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);
+  background:rgba(255,255,255,0.02);color:var(--text);outline:none;font-size:15px
+}
+#submit-btn{padding:10px 16px;border-radius:8px;border:0;background:var(--accent);color:white;cursor:pointer;font-weight:600}
+#submit-btn:hover{filter:brightness(1.05)}
+
+.content{margin-top:16px;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:rgba(255,255,255,0.01)}
+.typed-text{white-space:pre-wrap;font-size:16px;line-height:1.6;color:var(--text)}
+
+.note{font-size:13px;color:var(--muted);text-align:center;margin-top:12px}
+.hidden{display:none}
