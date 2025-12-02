@@ -1,207 +1,67 @@
-/*****************************************
- * Configuration
- *****************************************/
-
-// exact passwords for pages (lowercased for case-insensitive compare)
-const PAGE_PASSWORDS = [
-  'bloomrise',     // first protected step (page 3 in original plan)
-  'paulanka',      // next
-  'amberlit',
-  'softfracture',
-  'violetluck'
-];
-
-// Daniela override (case-insensitive)
-const OVERRIDE = 'daniela';
-
-// Where to redirect when Daniela is entered (set this to your real final page)
-const FINAL_PAGE_URL = 'final.html'; // <-- change to your final page path if different
-
-// Where to redirect after a normal correct password (optional). If you have a flow
-// of pages, set NEXT_PAGE_URL to the next page or leave empty to just reveal content.
-const NEXT_PAGE_URL = ''; // set to '' if you don't want auto-redirect
-
-// Two-week countdown system — single next-unlock date
-// (If you want per-page unlocks in a schedule, I can switch this to a base-date + offsets)
-const TWO_WEEKS_DAYS = 14;
-const LOCALSTORAGE_UNLOCK_KEY = 'unlocked_passwords_v1';
-const LOCALSTORAGE_NEXTUNLOCK = 'nextUnlockDate_v1';
-
-// Typewriter speed (ms per character)
-const TYPE_SPEED = 35;
-
-/*****************************************
- * UI references
- *****************************************/
-const countdownEl = document.getElementById('countdown');
-const pwInput = document.getElementById('password-input');
-const submitBtn = document.getElementById('submit-btn');
-const contentEl = document.getElementById('content');
-const typedEl = document.getElementById('typed-text');
-
-/*****************************************
- * Utility: load/save unlocked state
- *****************************************/
-function loadUnlocked() {
-  try {
-    const raw = localStorage.getItem(LOCALSTORAGE_UNLOCK_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    return [];
-  }
+:root{
+  --bg:#0b0c10;
+  --panel:#0f1115;
+  --muted:#9aa3b2;
+  --text:#e6eef8;
+  --accent:#8b6cf6;
+  --glow: rgba(139,108,246,0.18);
 }
-function saveUnlocked(arr) {
-  try { localStorage.setItem(LOCALSTORAGE_UNLOCK_KEY, JSON.stringify(arr)); } catch(e){}
-}
-let unlockedPasswords = loadUnlocked();
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
+body{background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;padding:28px}
 
-/*****************************************
- * Countdown (formal message): "This page will become accessible in ___ days."
- *****************************************/
-function getOrCreateNextUnlockDate() {
-  try {
-    const raw = localStorage.getItem(LOCALSTORAGE_NEXTUNLOCK);
-    const now = new Date();
-    if (raw) {
-      const d = new Date(raw);
-      if (d > now) return d;
-    }
-    // create new (now + 14 days)
-    const next = new Date(now.getTime());
-    next.setDate(next.getDate() + TWO_WEEKS_DAYS);
-    localStorage.setItem(LOCALSTORAGE_NEXTUNLOCK, next.toISOString());
-    return next;
-  } catch (e) {
-    // fallback: now + 14 days
-    const fallback = new Date();
-    fallback.setDate(fallback.getDate() + TWO_WEEKS_DAYS);
-    return fallback;
-  }
+.wrap{width:96%;max-width:920px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+#siteTitle{font-size:18px;margin:0;color:var(--text)}
+.status{font-size:13px;color:var(--muted)}
+
+.content{min-height:360px;padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));overflow:auto;font-size:17px;line-height:1.6;white-space:pre-wrap}
+
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.navBtn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);cursor:pointer}
+.navBtn.primary{background:linear-gradient(90deg,var(--accent), #5b8bfd);border:none;color:white}
+.navBtn:disabled{opacity:0.35;cursor:not-allowed}
+.center-controls{display:flex;gap:8px;align-items:center}
+.foot{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
+
+/* Modal */
+.modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(2,4,8,0.6);z-index:40}
+.card{background:var(--panel);padding:18px;border-radius:10px;min-width:320px;max-width:520px;border:1px solid rgba(255,255,255,0.03)}
+.small{font-size:13px;color:var(--muted)}
+.pwInput{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.err{color:#ff7b7b;margin-top:8px}
+.hint{margin-top:10px;padding:10px;border-radius:8px;border:1px dashed rgba(255,255,255,0.04);background:rgba(255,255,255,0.02)}
+
+/* Tooltip soft glow (C1) */
+.tooltip-wrap{position:relative;margin-top:10px;min-height:28px}
+.hint-tooltip{
+  display:none;
+  position:relative;
+  max-width:100%;
+  margin:0 auto;
+  padding:10px 12px;
+  border-radius:10px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+  box-shadow: 0 6px 30px var(--glow), inset 0 1px 0 rgba(255,255,255,0.02);
+  color:var(--text);
+  border:1px solid rgba(139,108,246,0.22);
+  font-size:14px;
+  line-height:1.4;
+  opacity:0;
+  transform: translateY(6px);
 }
 
-function updateCountdownDisplay() {
-  const next = getOrCreateNextUnlockDate();
-  const now = new Date();
-  const diff = next - now;
-  if (diff <= 0) {
-    countdownEl.textContent = 'This page will become accessible in 0 days.';
-    return;
-  }
-  const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-  countdownEl.textContent = `This page will become accessible in ${days} day${days !== 1 ? 's' : ''}.`;
+/* fade-in animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
+.hint-tooltip.show { display:block; animation: fadeUp 360ms cubic-bezier(.2,.9,.2,1) forwards; }
 
-// refresh every minute so the days display updates
-setInterval(updateCountdownDisplay, 60 * 1000);
-updateCountdownDisplay();
-
-/*****************************************
- * Typewriter effect — safe for text
- *****************************************/
-function typeWriter(text, el, speed = TYPE_SPEED, onDone = null) {
-  el.textContent = '';
-  let i = 0;
-  function step() {
-    if (i >= text.length) {
-      if (onDone) onDone();
-      return;
-    }
-    el.textContent += text.charAt(i);
-    i++;
-    setTimeout(step, speed);
-  }
-  step();
+/* responsive tweaks */
+@media (max-width:520px){
+  .pwInput{font-size:14px}
+  .content{font-size:15px}
+  .hint-tooltip{font-size:13px}
 }
-
-/*****************************************
- * Password handling
- *****************************************/
-function normalize(s){ return (s || '').trim().toLowerCase(); }
-
-function alreadyUnlocked(password) {
-  const norm = normalize(password);
-  return unlockedPasswords.includes(norm);
-}
-
-function markUnlocked(password) {
-  const norm = normalize(password);
-  if (!unlockedPasswords.includes(norm)) {
-    unlockedPasswords.push(norm);
-    saveUnlocked(unlockedPasswords);
-  }
-}
-
-function handleSuccess(password) {
-  // reveal the content area with typewriter message
-  contentEl.classList.remove('hidden');
-  const msg = (normalize(password) === OVERRIDE) ?
-    'Access override accepted. Redirecting to the final page...' :
-    'Access granted. Proceeding to the next encrypted page...';
-
-  typeWriter(msg, typedEl, TYPE_SPEED, () => {
-    // optional redirect behavior
-    if (normalize(password) === OVERRIDE) {
-      // small delay to let the message show
-      setTimeout(() => { window.location.href = FINAL_PAGE_URL; }, 800);
-    } else if (NEXT_PAGE_URL) {
-      setTimeout(() => { window.location.href = NEXT_PAGE_URL; }, 800);
-    }
-  });
-}
-
-/*****************************************
- * Submit logic (Enter key and button)
- *****************************************/
-function submitPasswordFlow() {
-  const val = normalize(pwInput.value);
-
-  if (!val) {
-    alert('Please enter a password.');
-    return;
-  }
-
-  // Daniela override
-  if (val === normalize(OVERRIDE)) {
-    markUnlocked(val);
-    handleSuccess(val);
-    return;
-  }
-
-  // If this password was already unlocked earlier, bypass check
-  if (alreadyUnlocked(val)) {
-    handleSuccess(val);
-    return;
-  }
-
-  // Check among allowed passwords
-  if (PAGE_PASSWORDS.includes(val)) {
-    markUnlocked(val);
-    handleSuccess(val);
-    return;
-  }
-
-  // Not recognized
-  alert('Incorrect password. Please try again.');
-}
-
-// handle Enter key in input
-pwInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') submitPasswordFlow();
-});
-submitBtn.addEventListener('click', submitPasswordFlow);
-
-/*****************************************
- * Initialize UI (hide content if not unlocked)
- *****************************************/
-(function initUI(){
-  // If any password already stored as unlocked, optionally show content (adjust as you prefer)
-  // right now we leave it hidden until the user submits or override triggers.
-  if (unlockedPasswords.length > 0) {
-    // optional: show note (not auto-revealing)
-    // contentEl.classList.remove('hidden');
-    // typedEl.textContent = 'You have previously unlocked content. Use navigation to continue.';
-  }
-
-  // focus input for convenience
-  pwInput.focus();
-})();
