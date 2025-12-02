@@ -1,31 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Secure Multi-Page Portal</title>
+  <title>Multi-Page Doc — Dark</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1 class="title">Secure Entry Portal</h1>
+  <div class="wrap">
+    <header>
+      <h1 id="siteTitle">Document Reader</h1>
+      <div id="status" class="status">Loading…</div>
+    </header>
 
-    <!-- Formal countdown message -->
-    <p id="countdown" class="countdown">Loading...</p>
+    <main>
+      <div id="content" class="content">Loading content...</div>
 
-    <!-- Password input -->
-    <div id="password-box" class="password-box">
-      <label for="password-input">Enter Access Password:</label>
-      <input id="password-input" type="password" autocomplete="off" placeholder="Enter password" />
-      <button id="submit-btn">Submit</button>
+      <div class="nav">
+        <button id="backBtn" class="navBtn">← Back</button>
+
+        <div class="center-controls">
+          <button id="hintBtn" class="navBtn">Hint</button>
+          <button id="nextBtn" class="navBtn">Next →</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="foot">Passwords remembered locally in your browser.</footer>
+  </div>
+
+  <!-- Password modal -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="card" role="dialog" aria-modal="true">
+      <h2 id="modalTitle">Unlock Page</h2>
+      <p id="modalNote" class="small">Enter the password to unlock this page.</p>
+
+      <input id="pwInput" type="password" placeholder="Enter password" class="pwInput" autocomplete="off" />
+
+      <div class="tooltip-wrap">
+        <!-- Tooltip (hidden until attempts >=3) -->
+        <div id="hintTooltip" class="hint-tooltip" role="status" aria-hidden="true"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelPw" class="navBtn">Cancel</button>
+        <button id="submitPw" class="navBtn primary">Unlock</button>
+      </div>
+
+      <div id="pwMessage" class="small err" aria-live="polite"></div>
+      <div id="modalHint" class="hint small" style="display:none"></div>
     </div>
-
-    <!-- Content area revealed after success -->
-    <div id="content" class="content hidden">
-      <p id="typed-text" class="typed-text"></p>
-    </div>
-
-    <p class="note">Tip: passwords are stored locally in your browser so you won't need to re-enter them.</p>
   </div>
 
   <script src="script.js"></script>
