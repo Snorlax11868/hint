@@ -51,7 +51,6 @@ const contentEl = document.getElementById('content');
 const statusEl = document.getElementById('status');
 const backBtn = document.getElementById('backBtn');
 const nextBtn = document.getElementById('nextBtn');
-const hintBtn = document.getElementById('hintBtn');
 const copyTokenBtn = document.getElementById('copyTokenBtn');
 
 const modal = document.getElementById('modal');
@@ -98,18 +97,45 @@ async function fetchDocText(){
       if (!res.ok) throw new Error('HTTP ' + res.status);
       const txt = await res.text();
 
+      // If HTML → parse and remove style/script elements first, then extract textContent
       if (txt.trim().startsWith('<')) {
         try {
           const parser = new DOMParser();
           const doc = parser.parseFromString(txt, 'text/html');
+
+          // remove style/script elements entirely
+          const styles = doc.querySelectorAll('style, script');
+          styles.forEach(el => el.remove());
+
+          // remove comment nodes
+          const iterator = doc.createNodeIterator(doc, NodeFilter.SHOW_COMMENT);
+          let comment;
+          while (comment = iterator.nextNode()) comment.remove();
+
+          // extract visible text from body
           const body = doc.body;
-          const text = body ? body.textContent || '' : txt;
+          let text = body ? body.textContent || '' : txt;
+
+          // CLEANUP: remove CSS-like declarations remaining in text (e.g., "color:#000000;font-size:12pt;")
+          text = text.replace(/\{[^}]*\}/g, ' ');             // remove brace blocks
+          text = text.replace(/[a-z-]+:\s*[^;]+;/gi, ' ');    // remove key: value; sequences
+          text = text.replace(/&nbsp;/gi, ' ');
+          text = text.replace(/Report abuse/gi, ' ');
+          text = text.replace(/\s{2,}/g, ' ');
+          text = text.replace(/\n{3,}/g, '\n\n');
+          text = text.trim();
+
           return text;
         } catch(e) {
-          return txt.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').trim();
+          // fallback: strip tags and CSS-like
+          let cleaned = txt.replace(/<[^>]*>/g,' ').replace(/\{[^}]*\}/g,' ').replace(/[a-z-]+:\s*[^;]+;/gi,' ').replace(/&nbsp;/gi,' ').replace(/\s{2,}/g,' ').trim();
+          return cleaned;
         }
       } else {
-        return txt;
+        // plain text returned
+        // still remove any CSS-like remnants
+        let cleaned = txt.replace(/\{[^}]*\}/g,' ').replace(/[a-z-]+:\s*[^;]+;/gi,' ').replace(/\s{2,}/g,' ').trim();
+        return cleaned;
       }
     } catch(err) {
       console.warn('Fetch attempt failed:', url, err);
@@ -120,7 +146,7 @@ async function fetchDocText(){
 
 function splitPages(raw) {
   const normalized = raw.replace(/\r\n/g,'\n').trim();
-  const parts = normalized.split(DIVIDER).map(p => p.trim());
+  const parts = normalized.split(DIVIDER).map(p => p.trim()).filter(Boolean);
   return parts;
 }
 
@@ -173,7 +199,6 @@ function renderCurrent(){
   const pageText = pages[idx] || '';
   const paragraphs = renderPageParagraphs(pageText);
   const requiredPw = PAGE_PASSWORDS[idx];
-  const locked = requiredPw && !unlocked[idx];
 
   if (requiredPw && !unlocked[idx]) {
     const unlockDate = getUnlockDateForPage(idx);
@@ -184,12 +209,10 @@ function renderCurrent(){
     return;
   }
 
-  // show instantly if visited, else typewriter
   if (visited[idx]) {
     instantShowParagraphs(paragraphs);
   } else {
     typeParagraphs(paragraphs, ()=>{});
-    // mark visited after typewriter finishes
     visited[idx] = true;
     saveState();
   }
@@ -248,7 +271,7 @@ function openPasswordModal(pageIndex){
       }
       saveState();
       modal.style.display = 'none';
-      // generate and show share token for 'ALL'
+      // show token for ALL but without mentioning Daniela
       showShareToken('ALL');
       idx = pages.length - 1;
       renderCurrent();
@@ -261,7 +284,6 @@ function openPasswordModal(pageIndex){
       visited[pageIndex] = true; // skip typewriter on revisit
       saveState();
       modal.style.display = 'none';
-      // update share UI because unlocked changed
       updateShareUI();
       renderCurrent();
       return;
@@ -281,17 +303,6 @@ function openPasswordModal(pageIndex){
   cancelPw.onclick = () => {
     modal.style.display = 'none';
     pwMessage.innerText = '';
-  };
-
-  // Hint button toggles larger modal hint
-  hintBtn.onclick = () => {
-    const vis = modalHint.style.display === 'block';
-    if (vis) {
-      modalHint.style.display = 'none';
-    } else {
-      modalHint.innerText = PAGE_HINTS[pageIndex] || 'No hint available.';
-      modalHint.style.display = 'block';
-    }
   };
 
   pwInput.onkeydown = (e) => {
@@ -333,13 +344,11 @@ window.addEventListener('keydown', (e)=>{
 
 /* Share token helpers (Option B: token lists specific page indices) */
 function buildTokenFromUnlocked() {
-  // create sorted unique list of unlocked numeric indices
   const keys = Object.keys(unlocked).filter(k => unlocked[k]).map(k=>parseInt(k)).sort((a,b)=>a-b);
   if (!keys.length) return '';
   return keys.join(',');
 }
 function showShareToken(valueOverride) {
-  // If override provided (e.g. 'ALL'), show v=ALL
   const v = valueOverride ? valueOverride : buildTokenFromUnlocked();
   if (!v) return;
   const url = new URL(window.location.href);
@@ -370,7 +379,6 @@ copyBtn.addEventListener('click', async ()=>{
 
 /* Copy token from main UI */
 copyTokenBtn.addEventListener('click', ()=>{
-  // show current unlocked token (or suggest building one)
   const t = buildTokenFromUnlocked();
   if (!t) {
     alert('No unlocked pages to share yet. Unlock some pages first (or use Daniela).');
@@ -385,12 +393,10 @@ function applyTokenFromURL() {
   const v = params.get('v');
   if (!v) return false;
   if (v.toUpperCase() === 'ALL') {
-    // unlock all pages
     for (let i = 0; i < pages.length; i++) { unlocked[i] = true; visited[i] = true; }
     saveState();
     return true;
   }
-  // parse comma list
   const parts = v.split(',').map(s => s.trim()).filter(Boolean);
   let applied = false;
   for (const p of parts) {
@@ -417,14 +423,12 @@ async function init(){
       return;
     }
 
-    // Apply any v= token from URL
     applyTokenFromURL();
 
     idx = 0;
     renderCurrent();
     statusEl.innerText = `Page ${idx+1} / ${pages.length}`;
 
-    // update share UI based on unlocked state (if any)
     updateShareUI();
   } catch(err){
     contentEl.innerText = 'Could not load document: ' + err;
@@ -433,25 +437,3 @@ async function init(){
   }
 }
 init();
-
-/* helper: unlock date/day functions included earlier */
-function firstOfMonthAfterMonthsFromNow(monthsAhead = 0) {
-  const now = new Date();
-  const base = new Date(now.getFullYear(), now.getMonth(), 1);
-  if (now.getDate() > 1 || now.getHours() > 0 || now.getMinutes() > 0 || now.getSeconds() > 0) {
-    base.setMonth(base.getMonth() + 1);
-  }
-  base.setMonth(base.getMonth() + monthsAhead);
-  base.setHours(0,0,0,0);
-  return base;
-}
-function getUnlockDateForPage(pageIdx) {
-  if (pageIdx < 2) return new Date(0);
-  const monthsAhead = pageIdx - 2;
-  return firstOfMonthAfterMonthsFromNow(monthsAhead);
-}
-function daysUntil(date) {
-  const ms = date - new Date();
-  if (ms <= 0) return 0;
-  return Math.ceil(ms / (1000 * 60 * 60 * 24));
-}
