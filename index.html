@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Multi-Page Doc — Dark</title>
+  <title>Document Reader — Dark</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -21,12 +21,13 @@
 
         <div class="center-controls">
           <button id="hintBtn" class="navBtn">Hint</button>
+          <button id="copyTokenBtn" class="navBtn">Share Access Link</button>
           <button id="nextBtn" class="navBtn">Next →</button>
         </div>
       </div>
     </main>
 
-    <footer class="foot">Passwords remembered locally in your browser.</footer>
+    <footer class="foot">Passwords are stored locally in your browser. Share tokens to sync across devices.</footer>
   </div>
 
   <!-- Password modal -->
@@ -48,6 +49,13 @@
       </div>
 
       <div id="pwMessage" class="small err" aria-live="polite"></div>
+
+      <!-- Share token UI (appears when unlocked pages exist or Daniela used) -->
+      <div id="shareRow" style="margin-top:12px;display:none;gap:8px;align-items:center">
+        <input id="tokenField" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" readonly />
+        <button id="copyBtn" class="navBtn">Copy</button>
+      </div>
+
       <div id="modalHint" class="hint small" style="display:none"></div>
     </div>
   </div>
