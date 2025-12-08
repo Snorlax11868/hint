@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Document Reader — Page</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1 id="siteTitle">Document Reader</h1>
+      <div id="status" class="status">Loading…</div>
+    </header>
+
+    <main>
+      <div id="content" class="content">Loading content...</div>
+
+      <div class="nav">
+        <div><a id="homeLink" href="index.html">← Home</a></div>
+        <div class="center-controls">
+          <button id="shareBtn" class="navBtn">Share Access Link</button>
+          <button id="prevBtn" class="navBtn">← Prev</button>
+          <button id="nextBtn" class="navBtn">Next →</button>
+        </div>
+      </div>
+    </main>
+
+    <footer class="foot">Passwords are stored locally. Tokens sync unlocked pages across devices.</footer>
+  </div>
+
+  <!-- Password modal -->
+  <div id="modal" class="modal" aria-hidden="true">
+    <div class="card" role="dialog" aria-modal="true">
+      <h2 id="modalTitle">Unlock Page</h2>
+      <p id="modalNote" class="small">Enter the password to unlock this page.</p>
+
+      <input id="pwInput" type="password" placeholder="Enter password" class="pwInput" autocomplete="off" />
+
+      <div class="tooltip-wrap">
+        <div id="hintTooltip" class="hint-tooltip" role="status" aria-hidden="true"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelPw" class="navBtn">Cancel</button>
+        <button id="submitPw" class="navBtn primary">Unlock</button>
+      </div>
+
+      <div id="pwMessage" class="small err" aria-live="polite"></div>
+
+      <div id="shareRow" style="margin-top:12px;display:none;gap:8px;align-items:center">
+        <input id="tokenField" style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" readonly />
+        <button id="copyBtn" class="navBtn">Copy</button>
+      </div>
+
+      <div id="modalHint" class="hint small" style="display:none"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script>
+    // page.html-specific init: read ?p= and (optional) ?v= token and trigger render
+    (async function initPage(){
+      try {
+        await window.clues_initPromise;
+        const params = new URLSearchParams(window.location.search);
+        const p = Math.max(0, parseInt(params.get('p')||'0',10));
+        const v = params.get('v');
+        if (v) {
+          // apply token (v may be 'ALL' or comma list or base64 encoded token)
+          window.clues_applyTokenFromURL(v);
+        }
+        window.clues_navigateTo(p);
+      } catch(e){
+        document.getElementById('status').innerText = 'Error: ' + e.toString();
+        console.error(e);
+      }
+    })();
+  </script>
+</body>
+</html>
