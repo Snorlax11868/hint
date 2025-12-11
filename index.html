@@ -26,26 +26,25 @@
 
   <script src="script.js"></script>
   <script>
-    // INDEX-SPECIFIC: After script loads, build page list and links
     (async function initIndex(){
       try {
-        await window.clues_initPromise; // wait for core fetch logic
+        await window.clues_initPromise;
         const pages = window.clues_pages || [];
         const container = document.getElementById('pagesList');
         container.innerHTML = '';
         if (!pages.length) { container.innerText = 'No pages found.'; return; }
+        const v = new URLSearchParams(window.location.search).get('v');
         pages.forEach((p, i) => {
           const row = document.createElement('div');
           row.className = 'page-row';
-          // short preview (first line)
-          const preview = p.split(/\n/).find(l=>l.trim().length) || '(empty)';
+          const preview = (p.split(/\n/).find(l=>l.trim().length) || '').trim() || '(empty)';
           const link = document.createElement('a');
-          link.href = 'page.html?p=' + i + (window.clues_token ? '&v=' + encodeURIComponent(window.clues_token) : '');
-          link.innerText = `Page ${i+1}: ${preview.slice(0,80)}${preview.length>80?'…':''}`;
+          link.href = 'page.html?p=' + i + (v ? '&v=' + encodeURIComponent(v) : '');
+          link.innerText = `Page ${i+1}: ${preview.length>80 ? preview.slice(0,80)+'…' : preview}`;
           row.appendChild(link);
           container.appendChild(row);
         });
-        document.getElementById('status').innerText = `Loaded ${pages.length} pages`;
+        document.getElementById('status').innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
       } catch(e){
         document.getElementById('status').innerText = 'Error loading pages';
         document.getElementById('pagesList').innerText = e.toString();
