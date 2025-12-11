@@ -59,17 +59,13 @@
 
   <script src="script.js"></script>
   <script>
-    // page.html-specific init: read ?p= and (optional) ?v= token and trigger render
     (async function initPage(){
       try {
         await window.clues_initPromise;
         const params = new URLSearchParams(window.location.search);
         const p = Math.max(0, parseInt(params.get('p')||'0',10));
         const v = params.get('v');
-        if (v) {
-          // apply token (v may be 'ALL' or comma list or base64 encoded token)
-          window.clues_applyTokenFromURL(v);
-        }
+        if (v) window.clues_applyTokenFromURL(v);
         window.clues_navigateTo(p);
       } catch(e){
         document.getElementById('status').innerText = 'Error: ' + e.toString();
