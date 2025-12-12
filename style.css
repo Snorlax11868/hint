@@ -1,73 +1,46 @@
-:root{
-  --bg:#0b0c10;
-  --panel:#0f1115;
-  --muted:#9aa3b2;
-  --text:#e6eef8;
-  --accent:#8b6cf6;
-  --glow: rgba(139,108,246,0.18);
-}
-*{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial}
-body{background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center;padding:28px}
-
-.wrap{width:96%;max-width:920px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border-radius:12px;padding:20px;box-shadow:0 8px 40px rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.03)}
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-h1{font-size:18px;margin:0;color:var(--text)}
-.status{font-size:13px;color:var(--muted)}
-
-.lead{color:var(--muted);margin-bottom:12px}
-
-.content{min-height:360px;padding:18px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));overflow:auto;font-size:17px;line-height:1.6;white-space:pre-wrap}
-
-.nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-.navBtn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);cursor:pointer}
-.navBtn.primary{background:linear-gradient(90deg,var(--accent), #5b8bfd);border:none;color:white}
-.navBtn:disabled{opacity:0.35;cursor:not-allowed}
-.center-controls{display:flex;gap:8px;align-items:center}
-.foot{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
-
-.pages-list{display:flex;flex-direction:column;gap:8px}
-.page-row a{color:var(--text);text-decoration:none;padding:8px;border-radius:8px;display:block}
-.page-row a:hover{background:rgba(255,255,255,0.02)}
-
-/* Modal */
-.modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(2,4,8,0.6);z-index:40}
-.card{background:var(--panel);padding:18px;border-radius:10px;min-width:320px;max-width:680px;border:1px solid rgba(255,255,255,0.03)}
-.small{font-size:13px;color:var(--muted)}
-.pwInput{width:100%;padding:10px;margin-top:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
-.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
-.err{color:#ff7b7b;margin-top:8px}
-.hint{margin-top:10px;padding:10px;border-radius:8px;border:1px dashed rgba(255,255,255,0.04);background:rgba(255,255,255,0.02)}
-
-/* Tooltip soft glow (C1) */
-.tooltip-wrap{position:relative;margin-top:10px;min-height:28px}
-.hint-tooltip{
-  display:none;
-  position:relative;
-  max-width:100%;
-  margin:0 auto;
-  padding:10px 12px;
-  border-radius:10px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
-  box-shadow: 0 6px 30px var(--glow), inset 0 1px 0 rgba(255,255,255,0.02);
-  color:var(--text);
-  border:1px solid rgba(139,108,246,0.22);
-  font-size:14px;
-  line-height:1.4;
-  opacity:0;
-  transform: translateY(6px);
+body {
+  background: #111;
+  color: #eee;
+  font-family: "Georgia", serif;
+  margin: 0;
+  padding: 20px;
 }
 
-/* fade-in animation */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(8px) scale(0.995); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+.title {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 26px;
 }
-.hint-tooltip.show { display:block; animation: fadeUp 360ms cubic-bezier(.2,.9,.2,1) forwards; }
 
-/* small responsive tweak */
-@media (max-width:520px){
-  .pwInput{font-size:14px}
-  .content{font-size:15px}
-  .hint-tooltip{font-size:13px}
+.button-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+}
+
+.page-btn {
+  padding: 12px;
+  background: #222;
+  border: 1px solid #555;
+  color: #eee;
+  text-align: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.page-btn:hover {
+  background: #333;
+}
+
+.back-btn {
+  display: inline-block;
+  margin-bottom: 15px;
+  color: #ccc;
+  text-decoration: none;
+}
+
+.page-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: 18px;
 }
