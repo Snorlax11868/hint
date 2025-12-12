@@ -1,55 +1,19 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Document Reader — Home</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Story Pages</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Document Reader</h1>
-      <div id="status" class="status">Loading…</div>
-    </header>
 
-    <main>
-      <p class="lead">Welcome — select a page to read. Pages 1–2 are public; later pages require a password or an access token.</p>
+  <div id="app">
+    <h1 class="title">Story Pages</h1>
 
-      <div id="pagesList" class="pages-list">Loading pages…</div>
-
-      <div class="footnote">
-        <small>Share unlocked pages with friends using the "Share Access Link" on any page.</small>
-      </div>
-    </main>
+    <div class="button-grid" id="pageButtons"></div>
   </div>
 
   <script src="script.js"></script>
-  <script>
-    (async function initIndex(){
-      try {
-        await window.clues_initPromise;
-        const pages = window.clues_pages || [];
-        const container = document.getElementById('pagesList');
-        container.innerHTML = '';
-        if (!pages.length) { container.innerText = 'No pages found.'; return; }
-        const v = new URLSearchParams(window.location.search).get('v');
-        pages.forEach((p, i) => {
-          const row = document.createElement('div');
-          row.className = 'page-row';
-          const preview = (p.split(/\n/).find(l=>l.trim().length) || '').trim() || '(empty)';
-          const link = document.createElement('a');
-          link.href = 'page.html?p=' + i + (v ? '&v=' + encodeURIComponent(v) : '');
-          link.innerText = `Page ${i+1}: ${preview.length>80 ? preview.slice(0,80)+'…' : preview}`;
-          row.appendChild(link);
-          container.appendChild(row);
-        });
-        document.getElementById('status').innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
-      } catch(e){
-        document.getElementById('status').innerText = 'Error loading pages';
-        document.getElementById('pagesList').innerText = e.toString();
-      }
-    })();
-  </script>
 </body>
 </html>
