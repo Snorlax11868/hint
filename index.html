@@ -7,29 +7,52 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="wrap">
-    <header><h1>Document Reader</h1><div id="status" class="status">Loading…</div></header>
-    <main>
-      <p class="lead">Welcome — select a page to read.</p>
-      <div id="pagesList" class="pages-list">Loading pages…</div>
-    </main>
-  </div>
+  <main class="wrap">
+    <header class="header">
+      <h1 class="site-title">Document Reader</h1>
+      <div id="status" class="status">Loading…</div>
+    </header>
+
+    <section class="intro">
+      <p class="lead">Welcome — select a page to read. Pages 1–2 are public; later pages require the previous page's password.</p>
+    </section>
+
+    <section id="pagesList" class="pages-list">Loading pages…</section>
+
+    <footer class="foot">
+      <small>Tip: passwords and visited state are stored locally. Share unlocked pages with <strong>Share Access Link</strong>.</small>
+    </footer>
+  </main>
 
   <script src="script.js"></script>
   <script>
-    (async function initIndex(){
+    (async function () {
       await window.clues_initPromise;
       const pages = window.clues_pages || [];
-      document.getElementById('pagesList').innerHTML = '';
-      pages.forEach((p,i) => {
+      const container = document.getElementById('pagesList');
+      container.innerHTML = '';
+      const v = new URLSearchParams(window.location.search).get('v');
+
+      pages.forEach((p, i) => {
         const row = document.createElement('div');
         row.className = 'page-row';
+
         const link = document.createElement('a');
-        link.href = `page.html?p=${i}${window.clues_token?'&v='+encodeURIComponent(window.clues_token):''}`;
-        link.innerText = `Page ${i+1}: ${p.title||'(no title)'}`;
+        link.className = 'page-link';
+        link.href = `page.html?p=${i}` + (v ? `&v=${encodeURIComponent(v)}` : '');
+        link.innerText = `Page ${i+1}${p.title ? ' — ' + p.title : ''}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'page-meta';
+        if (i <= 1) meta.innerText = 'Open';
+        else meta.innerText = 'Locked (sequential)';
+
         row.appendChild(link);
-        document.getElementById('pagesList').appendChild(row);
+        row.appendChild(meta);
+        container.appendChild(row);
       });
+
+      document.getElementById('status').innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
     })();
   </script>
 </body>
