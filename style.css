@@ -1,46 +1,41 @@
-body {
-  background: #111;
-  color: #eee;
-  font-family: "Georgia", serif;
-  margin: 0;
-  padding: 20px;
+:root{
+  --bg:#0b0c10;
+  --panel:#0f1115;
+  --muted:#9aa3b2;
+  --text:#e6eef8;
+  --accent:#8b6cf6;
+  --glass: rgba(255,255,255,0.03);
 }
 
-.title {
-  text-align: center;
-  margin-bottom: 20px;
-  font-size: 26px;
-}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Georgia, 'Times New Roman', serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:880px;margin:36px auto;padding:22px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.02));border:1px solid rgba(255,255,255,0.03);box-shadow:0 12px 40px rgba(0,0,0,0.7)}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.site-title{font-size:20px;margin:0;letter-spacing:0.4px}
+.status{font-size:13px;color:var(--muted)}
+.lead{color:var(--muted);margin-bottom:12px}
+.pages-list{display:flex;flex-direction:column;gap:8px}
+.page-row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+.page-link{color:var(--text);text-decoration:none;font-weight:500}
+.page-meta{color:var(--muted);font-size:13px}
 
-.button-grid {
-  display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-}
+.content{min-height:360px;padding:20px;border-radius:10px;border:1px solid var(--glass);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.02));font-size:18px;line-height:1.7;white-space:pre-wrap}
 
-.page-btn {
-  padding: 12px;
-  background: #222;
-  border: 1px solid #555;
-  color: #eee;
-  text-align: center;
-  cursor: pointer;
-  transition: 0.2s;
-}
+.nav{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.center-controls{display:flex;gap:8px;align-items:center}
+.btn{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:var(--text);cursor:pointer}
+.btn.primary{background:linear-gradient(90deg,var(--accent), #5b8bfd);border:none;color:white}
+.btn:disabled{opacity:0.4;cursor:not-allowed}
+.foot{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
 
-.page-btn:hover {
-  background: #333;
-}
-
-.back-btn {
-  display: inline-block;
-  margin-bottom: 15px;
-  color: #ccc;
-  text-decoration: none;
-}
-
-.page-text {
-  white-space: pre-wrap;
-  line-height: 1.6;
-  font-size: 18px;
+.modal{position:fixed;left:0;top:0;width:100%;height:100%;display:none;align-items:center;justify-content:center;background:rgba(2,4,8,0.6);z-index:40}
+.card{background:var(--panel);padding:18px;border-radius:10px;min-width:320px;max-width:680px;border:1px solid rgba(255,255,255,0.03)}
+.small{font-size:13px;color:var(--muted)}
+.pwInput{width:100%;padding:10px;margin-top:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--text)}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+.err{color:#ff7b7b;margin-top:8px}
+.hint{padding:10px;border-radius:8px;border:1px dashed rgba(255,255,255,0.04);background:rgba(255,255,255,0.01);color:var(--text);font-size:14px}
+@media (max-width:520px){
+  .content{font-size:16px}
+  .site-title{font-size:18px}
 }
