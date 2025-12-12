@@ -1,19 +1,36 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Story Pages</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Document Reader — Home</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <div id="app">
-    <h1 class="title">Story Pages</h1>
-
-    <div class="button-grid" id="pageButtons"></div>
+  <div class="wrap">
+    <header><h1>Document Reader</h1><div id="status" class="status">Loading…</div></header>
+    <main>
+      <p class="lead">Welcome — select a page to read.</p>
+      <div id="pagesList" class="pages-list">Loading pages…</div>
+    </main>
   </div>
 
   <script src="script.js"></script>
+  <script>
+    (async function initIndex(){
+      await window.clues_initPromise;
+      const pages = window.clues_pages || [];
+      document.getElementById('pagesList').innerHTML = '';
+      pages.forEach((p,i) => {
+        const row = document.createElement('div');
+        row.className = 'page-row';
+        const link = document.createElement('a');
+        link.href = `page.html?p=${i}${window.clues_token?'&v='+encodeURIComponent(window.clues_token):''}`;
+        link.innerText = `Page ${i+1}: ${p.title||'(no title)'}`;
+        row.appendChild(link);
+        document.getElementById('pagesList').appendChild(row);
+      });
+    })();
+  </script>
 </body>
 </html>
