@@ -1,19 +1,37 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Read Page</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Document Reader — Page</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <div id="app">
-    <a href="index.html" class="back-btn">← Back</a>
-    <h1 id="pageTitle" class="title"></h1>
-    <div id="pageContent" class="page-text"></div>
+  <div class="wrap">
+    <header><h1 id="siteTitle">Document Reader</h1><div id="status" class="status">Loading…</div></header>
+    <main>
+      <div id="content" class="content">Loading content...</div>
+      <div class="nav">
+        <div><a id="homeLink" href="index.html">← Home</a></div>
+        <div class="center-controls">
+          <button id="shareBtn" class="navBtn">Share Access Link</button>
+          <button id="prevBtn" class="navBtn">← Prev</button>
+          <button id="nextBtn" class="navBtn">Next →</button>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script src="script.js"></script>
+  <script>
+    (async function initPage(){
+      await window.clues_initPromise;
+      const params = new URLSearchParams(window.location.search);
+      const p = parseInt(params.get('p')||'0',10);
+      const v = params.get('v');
+      if (v) window.clues_applyTokenFromURL(v);
+      window.clues_navigateTo(p);
+    })();
+  </script>
 </body>
 </html>
