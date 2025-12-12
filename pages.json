@@ -1,1 +1,24 @@
-
+{
+  "pages": [
+    {
+      "id": 1,
+      "title": "Intro",
+      "content": "==PAGE 1==\nYour intro content goes here."
+    },
+    {
+      "id": 2,
+      "title": "Page 2",
+      "content": "==PAGE 2==\nYour page 2 content here."
+    },
+    {
+      "id": 3,
+      "title": "Page 3",
+      "content": "==PAGE 3==\nYour page 3 content here."
+    },
+    {
+      "id": 4,
+      "title": "Page 4",
+      "content": "==PAGE 4==\nYour page 4 content here."
+    }
+  ]
+}
