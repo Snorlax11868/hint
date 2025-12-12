@@ -14,13 +14,13 @@
     </header>
 
     <section class="intro">
-      <p class="lead">Welcome — select a page to read. Pages 1–2 are public; later pages require the previous page's password.</p>
+      <p class="lead">Welcome — select a page to read. Pages 1–2 are public; later pages require the previous page's password (or will auto-unlock on schedule).</p>
     </section>
 
     <section id="pagesList" class="pages-list">Loading pages…</section>
 
     <footer class="foot">
-      <small>Tip: passwords and visited state are stored locally. Share unlocked pages with <strong>Share Access Link</strong>.</small>
+      <small>Tip: passwords and visited state are stored locally. Use the Share Access Link to sync unlocked pages on another device.</small>
     </footer>
   </main>
 
@@ -44,8 +44,7 @@
 
         const meta = document.createElement('div');
         meta.className = 'page-meta';
-        if (i <= 1) meta.innerText = 'Open';
-        else meta.innerText = 'Locked (sequential)';
+        meta.innerText = (i <= 1) ? 'Open' : 'Locked (sequential)';
 
         row.appendChild(link);
         row.appendChild(meta);
