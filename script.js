@@ -1,22 +1,19 @@
-/* script.js
-   Sequential unlocking version
-   - Page 0 & 1 open
-   - To open page i (i>=2), user must enter password produced on page i-1
-   - Master pass 'daniela' unlocks all (hidden)
-   - Hints shown after 3 failed attempts
-   - Typewriter on first view; skips on revisit (localStorage)
-   - token support: ?v=ALL or ?v=2,3,5
+/* Final script.js — Sequential + Monthly backup (Option 3A), local device time
+   - Pages expected in pages.json as array under "pages"
+   - Page indices: 0..N-1 (we have 0..6)
+   - Master pass: 'daniela' (case-insensitive)
+   - Passwords required to open page i (i>=2) are in PASSWORD_FLOW[i]
+   - Time backup:
+       - page 2 (index 2) auto-unlocks when now >= firstOfCurrentMonth
+       - page i>2 auto-unlocks when now >= firstOfMonthAfter(prevPageUnlockTimestamp)
+   - Unlock timestamps stored in LS_UNLOCK_TS
+   - Hints show after 3 failed attempts
+   - Typewriter runs first view, skipped on revisit
+   - Token support via ?v=ALL or ?v=2,3
 */
 
-const MASTER_PASS = 'daniela'; // hidden master pass (case-insensitive)
-const PASSWORD_FLOW = {
-  2: 'bloomrise',   // to open page index 2 (page 3) user must input bloomrise
-  3: 'paulanka',
-  4: 'amberlite',
-  5: 'softfracture',
-  6: 'violetluck'
-};
-// Hints corresponding to the above (page numbers)
+const MASTER_PASS = 'daniela';
+const PASSWORD_FLOW = { 2:'bloomrise', 3:'paulanka', 4:'amberlite', 5:'softfracture', 6:'violetluck' };
 const HINTS = {
   2: "I open without sound when someone walks near; not a door, not a bloom — name the thing that wakes on the face like sunrise.",
   3: "A vintage voice that serenades young hearts; two names, one famous for a small-heart song — say him aloud.",
@@ -26,38 +23,85 @@ const HINTS = {
 };
 
 // localStorage keys
-const LS_UNLOCK = 'story_unlocked_v1'; // object { "2": true }
-const LS_VISITED = 'story_visited_v1'; // object { "2": true }
-const LS_ATTEMPTS = 'story_attempts_v1'; // object { "2": 1 }
+const LS_UNLOCK = 'story_unlocked_v2';    // { "2": true }
+const LS_UNLOCK_TS = 'story_unlocked_ts_v2'; // { "2":"2025-12-01T00:00:00.000Z" }
+const LS_VISITED = 'story_visited_v2';
+const LS_ATTEMPTS = 'story_attempts_v2';
 
 let pages = [];
-let unlocked = {}; // pageIndex -> true
+let unlocked = {};
+let unlockTimestamps = {};
 let visited = {};
 let attempts = {};
 let currentIdx = 0;
 
 function loadState(){
   try{ unlocked = JSON.parse(localStorage.getItem(LS_UNLOCK)) || {}; }catch(e){ unlocked = {}; }
+  try{ unlockTimestamps = JSON.parse(localStorage.getItem(LS_UNLOCK_TS)) || {}; }catch(e){ unlockTimestamps = {}; }
   try{ visited = JSON.parse(localStorage.getItem(LS_VISITED)) || {}; }catch(e){ visited = {}; }
   try{ attempts = JSON.parse(localStorage.getItem(LS_ATTEMPTS)) || {}; }catch(e){ attempts = {}; }
 }
-function saveState(){ localStorage.setItem(LS_UNLOCK, JSON.stringify(unlocked)); localStorage.setItem(LS_VISITED, JSON.stringify(visited)); localStorage.setItem(LS_ATTEMPTS, JSON.stringify(attempts)); }
+function saveState(){ localStorage.setItem(LS_UNLOCK, JSON.stringify(unlocked)); localStorage.setItem(LS_UNLOCK_TS, JSON.stringify(unlockTimestamps)); localStorage.setItem(LS_VISITED, JSON.stringify(visited)); localStorage.setItem(LS_ATTEMPTS, JSON.stringify(attempts)); }
 
 // token helpers
 function applyTokenString(v){
   if (!v) return false;
   if (v.toUpperCase() === 'ALL'){
-    for (let i=0;i<pages.length;i++){ unlocked[i]=true; visited[i]=true; }
+    for (let i=0;i<pages.length;i++){ unlocked[i]=true; visited[i]=true; unlockTimestamps[i] = new Date().toISOString(); }
     saveState(); return true;
   }
   if (/^[0-9,]+$/.test(v)){
-    v.split(',').map(s=>parseInt(s,10)).filter(n=>!isNaN(n)).forEach(n=>{ unlocked[n]=true; visited[n]=true; });
+    v.split(',').map(s=>parseInt(s,10)).filter(n=>!isNaN(n)).forEach(n=>{ unlocked[n]=true; visited[n]=true; unlockTimestamps[n] = unlockTimestamps[n] || new Date().toISOString(); });
     saveState(); return true;
   }
-  try { const dec = atob(v); const arr = JSON.parse(dec); if (Array.isArray(arr)){ arr.forEach(n=>{ unlocked[n]=true; visited[n]=true; }); saveState(); return true; } } catch(e){}
+  try{ const dec = atob(v); const arr = JSON.parse(dec); if (Array.isArray(arr)) { arr.forEach(n=>{ unlocked[n]=true; visited[n]=true; unlockTimestamps[n] = unlockTimestamps[n] || new Date().toISOString(); }); saveState(); return true; } } catch(e){}
   return false;
 }
 function getVParam(){ return new URLSearchParams(window.location.search).get('v'); }
+function buildTokenFromUnlocked(){ const ks = Object.keys(unlocked).filter(k=>unlocked[k]).map(k=>parseInt(k)).sort((a,b)=>a-b); if(!ks.length) return ''; return ks.join(','); }
+function tokenURLFor(v){ const url = new URL(window.location.href); url.searchParams.set('v', v); return url.toString(); }
+
+// time helpers (local device time)
+function firstOfCurrentMonthLocal(){
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
+}
+function firstOfMonthAfterDateLocal(dateIso){
+  const d = new Date(dateIso);
+  // next month first
+  return new Date(d.getFullYear(), d.getMonth() + 1, 1, 0,0,0,0);
+}
+function nowIsOnOrAfter(dateObj){
+  return new Date() >= dateObj;
+}
+
+// Apply monthly backup unlocks (Option 3A)
+function applyMonthlyBackups(){
+  // Page 3 (index 2): unlock if now >= first of current month
+  if (pages.length > 2){
+    const idx = 2;
+    if (!unlocked[idx]){
+      const firstThisMonth = firstOfCurrentMonthLocal();
+      if (nowIsOnOrAfter(firstThisMonth)){
+        unlocked[idx] = true;
+        unlockTimestamps[idx] = unlockTimestamps[idx] || new Date().toISOString();
+      }
+    }
+  }
+  // For pages >2: if previous page has unlock timestamp, compute first-of-month after that ts
+  for (let i = 3; i < pages.length; i++){
+    if (unlocked[i]) continue;
+    const prev = i - 1;
+    const prevTs = unlockTimestamps[prev];
+    if (!prevTs) continue; // can't compute until prev unlocked
+    const unlockDate = firstOfMonthAfterDateLocal(prevTs);
+    if (nowIsOnOrAfter(unlockDate)){
+      unlocked[i] = true;
+      unlockTimestamps[i] = unlockTimestamps[i] || new Date().toISOString();
+    }
+  }
+  saveState();
+}
 
 // fetch pages.json
 window.clues_initPromise = (async function init(){
@@ -67,9 +111,11 @@ window.clues_initPromise = (async function init(){
     const json = await r.json();
     pages = json.pages || [];
     window.clues_pages = pages;
-    // apply token if present
+    // apply token if present in URL
     const v = getVParam();
     if (v) applyTokenString(v);
+    // run monthly backup logic immediately
+    applyMonthlyBackups();
     return true;
   } catch (e) {
     console.error('Failed to load pages.json', e);
@@ -79,13 +125,13 @@ window.clues_initPromise = (async function init(){
   }
 })();
 
-// helpers: DOM
+// helpers
 const $ = id => document.getElementById(id);
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
 // typewriter (skip when visited)
 let skipFlag = false;
-async function typewriterTo(container, text, speed=20){
+async function typewriterTo(container, text, speed=22){
   if (visited[currentIdx]) {
     container.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
     return;
@@ -113,41 +159,43 @@ async function typewriterTo(container, text, speed=20){
 window.addEventListener('click', ()=> skipFlag = true);
 window.addEventListener('keydown', ()=> skipFlag = true);
 
-// navigation & rendering
+// render index
 function renderIndexList(){
-  const container = $('pagesList');
-  if (!container) return;
+  const container = $('pagesList'); if (!container) return;
   container.innerHTML = '';
   pages.forEach((p,i)=>{
-    const row = document.createElement('div');
-    row.className = 'page-row';
-    const link = document.createElement('a');
-    link.className = 'page-link';
-    link.href = `page.html?p=${i}${getVParam()?`&v=${encodeURIComponent(getVParam())}`:''}`;
+    const row = document.createElement('div'); row.className='page-row';
+    const link = document.createElement('a'); link.className='page-link';
+    const v = getVParam();
+    link.href = 'page.html?p=' + i + (v ? '&v=' + encodeURIComponent(v) : '');
     link.innerText = `Page ${i+1}${p.title ? ' — ' + p.title : ''}`;
-    const meta = document.createElement('div');
-    meta.className = 'page-meta';
-    meta.innerText = (i<=1) ? 'Open' : 'Sequential';
-    row.appendChild(link); row.appendChild(meta);
-    container.appendChild(row);
+    const meta = document.createElement('div'); meta.className='page-meta';
+    meta.innerText = (i<=1) ? 'Open' : 'Locked (sequential)';
+    row.appendChild(link); row.appendChild(meta); container.appendChild(row);
   });
   const st = $('status'); if (st) st.innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
 }
 
+// check if user can attempt open of target page (sequential rule)
 function canAttemptOpen(targetIdx){
-  // Page0 & Page1 open
   if (targetIdx <= 1) return true;
-  // To open page i you must have unlocked previous page (i-1)
+  // sequential: previous page must be unlocked (or visited)
   const prev = targetIdx - 1;
+  if (unlocked[prev] || visited[prev]) return true;
+  // also allow time-based unlocks (call applyMonthlyBackups to ensure up-to-date)
+  applyMonthlyBackups();
   return !!unlocked[prev] || !!visited[prev];
 }
 
+// open password modal for target
 function openPasswordModalFor(targetIdx){
   const modal = $('modal');
-  const pwInput = $('pwInput'); const msg = $('pwMessage'); const modalHint = $('modalHint'); const tokenField = $('tokenField'); const shareRow = $('shareRow');
-  modal.style.display='flex'; modal.setAttribute('aria-hidden','false');
+  const pwInput = $('pwInput'); const msg = $('pwMessage'); const modalHint = $('modalHint');
+  const tokenField = $('tokenField'); const shareRow = $('shareRow');
+  modal.style.display = 'flex'; modal.setAttribute('aria-hidden','false');
   pwInput.value=''; msg.innerText=''; modalHint.style.display='none';
-  $('modalTitle').innerText = `Unlock Page ${targetIdx+1}`; $('modalNote').innerText = HINTS[targetIdx] ? 'Solve the riddle to unlock.' : 'Enter the password to unlock this page.';
+  $('modalTitle').innerText = `Unlock Page ${targetIdx+1}`;
+  $('modalNote').innerText = HINTS[targetIdx] ? 'Solve the riddle to unlock.' : 'Enter the password to unlock this page.';
   attempts[targetIdx] = attempts[targetIdx] || 0;
   shareRow.style.display = buildTokenFromUnlocked() ? 'flex' : 'none';
   tokenField.value = buildTokenFromUnlocked() ? tokenURLFor(buildTokenFromUnlocked()) : '';
@@ -155,123 +203,118 @@ function openPasswordModalFor(targetIdx){
   function submit(){
     const val = (pwInput.value||'').trim().toLowerCase();
     if (!val){ msg.innerText='Please enter a password.'; return; }
+    // master bypass
     if (val === MASTER_PASS.toLowerCase()){
-      // master: unlock all and navigate to target
-      for (let i=0;i<pages.length;i++){ unlocked[i]=true; visited[i]=true; }
-      saveState(); modal.style.display='none';
-      renderPageIndex(targetIdx); return;
+      for (let i=0;i<pages.length;i++){ unlocked[i]=true; visited[i]=true; unlockTimestamps[i] = unlockTimestamps[i] || new Date().toISOString(); }
+      saveState(); modal.style.display='none'; renderPageIndex(targetIdx); return;
     }
-    const correct = (PASSWORD_FLOW[targetIdx]||'').toLowerCase();
+    const correct = (PASSWORD_FLOW[targetIdx] || '').toLowerCase();
     if (correct && val === correct){
-      unlocked[targetIdx]=true; visited[targetIdx]=true; saveState(); modal.style.display='none'; renderPageIndex(targetIdx); return;
+      unlocked[targetIdx] = true;
+      unlockTimestamps[targetIdx] = unlockTimestamps[targetIdx] || new Date().toISOString();
+      visited[targetIdx] = true;
+      saveState();
+      modal.style.display='none';
+      renderPageIndex(targetIdx);
+      return;
     }
     attempts[targetIdx] = (attempts[targetIdx]||0) + 1; saveState(); msg.innerText='Incorrect password.';
     if (attempts[targetIdx] >= 3){
-      modalHint.style.display = 'block'; modalHint.innerText = HINTS[targetIdx] || 'No hint available.';
+      modalHint.style.display = 'block';
+      modalHint.innerText = HINTS[targetIdx] || 'No hint available.';
     }
   }
 
   $('submitPw').onclick = submit;
   $('cancelPw').onclick = ()=> { modal.style.display='none'; msg.innerText=''; };
-  $('copyBtn').onclick = async ()=>{ const txt = tokenField.value; if (!txt) return; try { await navigator.clipboard.writeText(txt); $('copyBtn').innerText='Copied'; setTimeout(()=>$('copyBtn').innerText='Copy',1200);}catch(e){ alert('Copy failed'); } };
-  pwInput.onkeydown = (e)=>{ if (e.key==='Enter') submit(); if (e.key==='Escape') modal.style.display='none'; };
+  $('copyBtn').onclick = async ()=> { const txt = tokenField.value; if(!txt) return; try{ await navigator.clipboard.writeText(txt); $('copyBtn').innerText='Copied'; setTimeout(()=>$('copyBtn').innerText='Copy',1200);}catch(e){ alert('Copy failed'); } };
+  pwInput.onkeydown = (e)=>{ if (e.key === 'Enter') submit(); if (e.key === 'Escape') modal.style.display='none'; };
 }
 
-function buildTokenFromUnlocked(){
-  const ks = Object.keys(unlocked).filter(k=>unlocked[k]).map(k=>parseInt(k)).sort((a,b)=>a-b);
-  if (!ks.length) return '';
-  return ks.join(',');
-}
+// helpers for tokens
 function tokenURLFor(v){ const u = new URL(window.location.href); u.searchParams.set('v', v); return u.toString(); }
 
+// render a page (page.html)
 function renderPageIndex(idx){
   currentIdx = idx;
   const contentEl = $('content'); const status = $('status');
-  if (!contentEl) return;
+  if (!contentEl || !status) return;
   status.innerText = `Page ${idx+1} / ${pages.length}`;
-  const page = pages[idx] || { title: '', content: ''};
+  const page = pages[idx] || { title:'', content:'' };
+
+  // run monthly backups each render
+  applyMonthlyBackups();
+
+  // If the page is subject to password flow and not unlocked
   if (PASSWORD_FLOW[idx] && !unlocked[idx]){
-    // require previous unlocked
+    // ensure sequential precondition
     if (!canAttemptOpen(idx)){
-      status.innerText = `Page ${idx+1} is locked until previous page is completed.`;
-      contentEl.innerHTML = '<p class="small">(Complete previous page first)</p>';
+      status.innerText = `Page ${idx+1} is locked until the previous page is completed.`;
+      contentEl.innerHTML = '<p class="small">(Complete previous page first.)</p>';
       setupNavButtons(idx);
       return;
     }
-    // Show preview blurred
-    const first = (page.content||'').split(/\n{2,}/).find(s=>s.trim()) || '(This page is empty)';
-    contentEl.innerHTML = `<div style="filter:blur(3px);opacity:0.95">${escapeHtml(first)}</div>`;
+    // show blurred preview and open modal for unlocking
+    const firstPara = (page.content||'').split(/\n{2,}/).find(s=>s.trim()) || '(This page is empty)';
+    contentEl.innerHTML = `<div style="filter:blur(3px);opacity:0.95">${escapeHtml(firstPara)}</div>`;
     contentEl.style.pointerEvents='none';
-    // open modal to attempt unlock
     openPasswordModalFor(idx);
     setupNavButtons(idx);
     return;
   }
 
-  // show content (typewriter if not visited)
   contentEl.style.pointerEvents='auto';
-  if (visited[idx]) {
-    contentEl.innerHTML = escapeHtml(page.content).replace(/\n/g,'<br>');
-  } else {
-    typewriterTo(contentEl, page.content, 22);
-  }
+  if (visited[idx]) contentEl.innerHTML = escapeHtml(page.content).replace(/\n/g,'<br>');
+  else typewriterTo(contentEl, page.content, 22);
+
   setupNavButtons(idx);
 }
 
 function setupNavButtons(idx){
   const prev = $('prevBtn'), next = $('nextBtn'), home = $('homeLink'), shareBtn = $('shareBtn');
-  if (prev){ prev.disabled = idx <= 0; prev.onclick = ()=> { if (idx>0) location.href = 'page.html?p='+(idx-1)+(getVParam()? '&v='+encodeURIComponent(getVParam()) : ''); }; }
+  if (prev){ prev.disabled = idx <= 0; prev.onclick = ()=> { if (idx>0) location.href = 'page.html?p=' + (idx-1) + (getVParam()? '&v='+encodeURIComponent(getVParam()): ''); }; }
   if (next){ next.disabled = idx >= pages.length-1; next.onclick = ()=> {
-    const target = idx+1;
+    const target = idx + 1;
+    // if target requires password and not unlocked, ensure sequential and open modal
     if (PASSWORD_FLOW[target] && !unlocked[target]) {
-      // require previous unlocked to attempt
-      if (!canAttemptOpen(target)){ alert('You must complete the current page first.'); return; }
-      openPasswordModalFor(target); return;
+      if (!canAttemptOpen(target)) { alert('You must complete the current page first.'); return; }
+      openPasswordModalFor(target);
+      return;
     }
-    location.href = 'page.html?p='+target+(getVParam()? '&v='+encodeURIComponent(getVParam()) : '');
+    location.href = 'page.html?p=' + target + (getVParam()? '&v='+encodeURIComponent(getVParam()): '');
   }; }
-  if (home) home.href = 'index.html' + (getVParam()? '?v='+encodeURIComponent(getVParam()):'');
-
+  if (home) home.href = 'index.html' + (getVParam()? '?v='+encodeURIComponent(getVParam()): '');
   if (shareBtn){
     shareBtn.onclick = ()=> {
       const tok = buildTokenFromUnlocked();
-      if (!tok) { alert('No unlocked pages to share yet. Unlock some pages or use master bypass.'); return; }
+      if (!tok) { alert('No unlocked pages to share yet. Unlock some pages or use the master bypass.'); return; }
       const url = tokenURLFor(tok);
       navigator.clipboard.writeText(url).then(()=>alert('Link copied to clipboard'), ()=>prompt('Copy link:', url));
     };
   }
 }
 
-// apply v param helper
+// apply v param helper wrapper (exposed)
 function applyVFromURL(){
   const v = getVParam();
   if (!v) return false;
   return applyTokenString(v);
 }
 
-// when index loads
-async function onIndexLoad(){
-  await window.clues_initPromise;
-  renderIndexList();
-}
-
-// when page loads
-async function onPageLoad(){
-  await window.clues_initPromise;
-  const params = new URLSearchParams(window.location.search);
-  const p = Math.max(0, parseInt(params.get('p')||'0',10));
-  const v = params.get('v'); if (v) applyTokenString(v);
-  renderPageIndex(p);
-}
-
-// expose helpers for page.html
+// expose helpers
 window.clues_applyTokenFromURL = applyTokenString;
 window.clues_navigateTo = renderPageIndex;
+window.clues_pages = pages;
 
-// auto-run when included in index or page
-(function autoRun(){
-  // detect path
+// boot logic for index/page
+(async function boot(){
+  await window.clues_initPromise;
   const path = window.location.pathname.split('/').pop();
-  if (path === '' || path === 'index.html') onIndexLoad();
-  if (path === 'page.html') onPageLoad();
+  if (path === '' || path === 'index.html') renderIndexList();
+  if (path === 'page.html') {
+    const params = new URLSearchParams(window.location.search);
+    const p = Math.max(0, parseInt(params.get('p')||'0',10));
+    const v = params.get('v'); if (v) applyTokenString(v);
+    renderPageIndex(p);
+  }
 })();
