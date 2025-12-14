@@ -1,74 +1,95 @@
-const DOC_URL = "https://docs.google.com/document/d/e/2PACX-1vRIzDF5V10ykJNamnHWrjM1YFlMrE9uZfMMDSuH1uo_Mb4Si0RFOUm6pmxB1padhPD9iICKQxEG0B-Z/pub";
+const DOC_URL =
+  "https://docs.google.com/document/d/e/2PACX-1vRIzDF5V10ykJNamnHWrjM1YFlMrE9uZfMMDSuH1uo_Mb4Si0RFOUm6pmxB1padhPD9iICKQxEG0B-Z/pub";
 
-const TITLES = [
-  "Intro",
-  "The Quiet Bloom",
-  "Where Small Joys Echo",
-  "A Warm-Hued Morning",
-  "The Softness in the Cracks",
-  "Purple Fortunes",
-  "Ending"
+const MASTER_PASSWORD = "daniela";
+
+const pagesConfig = [
+  { title: "Intro", password: null },
+  { title: "The Quiet Bloom", password: null },
+  { title: "Where Small Joys Echo", password: "bloomrise" },
+  { title: "A Warm-Hued Morning", password: "PaulAnka" },
+  { title: "The Softness in the Cracks", password: "Amberlite" },
+  { title: "Purple Fortunes", password: "Softfracture" },
+  { title: "Final Page", password: "Daniela", ending: true }
 ];
 
-const PASSWORDS = [
-  null,
-  null,
-  "bloomrise",
-  "PaulAnka",
-  "Amberlite",
-  "Softfracture",
-  "Daniela"
-];
+let pages = [];
+let currentPage = 0;
 
-const HINTS = [
-  "",
-  "",
-  "I open without sound when someone walks near...",
-  "A vintage voice that serenades young hearts...",
-  "A gemstone warmed by daylight...",
-  "Part hush, part break...",
-  ""
-];
+/* ---------- CLEAN GOOGLE DOC ---------- */
+function extractCleanContent(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const body = doc.querySelector("body");
+  if (!body) return "";
 
-window.clues_pages = [];
-window.clues_unlocked = JSON.parse(localStorage.getItem("unlocked") || "[]");
+  body.querySelectorAll("script, style, meta, link").forEach(el => el.remove());
+  return body.innerHTML;
+}
 
-window.clues_initPromise = fetch(DOC_URL)
+/* ---------- LOAD DOC ---------- */
+fetch(DOC_URL)
   .then(r => r.text())
-  .then(t => {
-    window.clues_pages = t.split("==PAGE==");
+  .then(raw => {
+    const clean = extractCleanContent(raw);
+    pages = clean
+      .split("==PAGE==")
+      .map(p => p.trim())
+      .filter(Boolean);
+
+    renderPage(0);
   });
 
-window.clues_navigateTo = function(i) {
-  siteTitle.innerText = TITLES[i];
-  status.innerText = `Page ${i+1}`;
-
-  if (PASSWORDS[i] && !window.clues_unlocked.includes(i)) {
-    showModal(i);
+/* ---------- PASSWORD CHECK ---------- */
+function unlock(nextIndex) {
+  const required = pagesConfig[nextIndex]?.password;
+  if (!required) {
+    renderPage(nextIndex);
     return;
   }
 
-  renderPage(i);
-};
+  const input = prompt("Password:");
+  if (!input) return;
 
-function renderPage(i) {
-  content.textContent = window.clues_pages[i] || "";
-  if (i === PASSWORDS.length - 1) {
-    document.body.classList.add("final-page");
+  if (
+    input === required ||
+    input.toLowerCase() === MASTER_PASSWORD
+  ) {
+    renderPage(nextIndex);
+  } else {
+    alert("Incorrect password.");
   }
 }
 
-function showModal(i) {
-  modal.style.display = "flex";
-  hintText.innerText = HINTS[i];
-  submitPw.onclick = () => {
-    if (pwInput.value === PASSWORDS[i]) {
-      modal.style.display = "none";
-      window.clues_unlocked.push(i);
-      localStorage.setItem("unlocked", JSON.stringify(window.clues_unlocked));
-      renderPage(i);
-    } else {
-      pwError.innerText = "Incorrect password";
-    }
-  };
+/* ---------- RENDER ---------- */
+function renderPage(index) {
+  currentPage = index;
+
+  document.getElementById("pageTitle").textContent =
+    pagesConfig[index]?.title || "Page";
+
+  document.getElementById("content").innerHTML = pages[index] || "";
+
+  document.getElementById("pageCounter").textContent =
+    `Page ${index + 1} / ${pages.length}`;
+
+  const nextBtn = document.getElementById("nextBtn");
+  nextBtn.style.display = index < pages.length - 1 ? "inline-block" : "none";
+
+  if (pagesConfig[index]?.ending) runEndingEffect();
 }
+
+/* ---------- ENDING EFFECT ---------- */
+function runEndingEffect() {
+  const c = document.getElementById("content");
+  c.style.opacity = "0";
+  setTimeout(() => {
+    c.style.transition = "opacity 3s ease";
+    c.style.opacity = "1";
+  }, 300);
+}
+
+/* ---------- BUTTON ---------- */
+document.getElementById("nextBtn").addEventListener("click", () => {
+  unlock(currentPage + 1);
+});
