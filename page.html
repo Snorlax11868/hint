@@ -1,68 +1,50 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Document Reader — Page</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Reading</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="wrap">
-    <header class="header">
-      <h1 id="siteTitle" class="site-title">Document Reader</h1>
-      <div id="status" class="status">Loading…</div>
-    </header>
+<div class="wrap">
+  <header>
+    <h1 id="siteTitle">Quiet Pages</h1>
+    <div id="status" class="status">Loading…</div>
+  </header>
 
-    <article>
-      <div id="content" class="content">Loading content…</div>
+  <main>
+    <div id="content" class="content"></div>
 
-      <div class="nav">
-        <div class="left"><a id="homeLink" href="index.html" class="nav-link">← Home</a></div>
-        <div class="center-controls">
-          <button id="shareBtn" class="btn">Share Access Link</button>
-          <button id="prevBtn" class="btn">← Prev</button>
-          <button id="nextBtn" class="btn">Next →</button>
-        </div>
-      </div>
-    </article>
-
-    <footer class="foot">Passwords are stored locally. Master password is hidden.</footer>
-  </main>
-
-  <!-- Password modal -->
-  <div id="modal" class="modal" aria-hidden="true">
-    <div class="card">
-      <h2 id="modalTitle">Unlock Page</h2>
-      <p id="modalNote" class="small">Enter the password to access the next page.</p>
-
-      <input id="pwInput" type="password" placeholder="Enter password" class="pwInput" autocomplete="off" />
-
-      <div class="modal-actions">
-        <button id="cancelPw" class="btn">Cancel</button>
-        <button id="submitPw" class="btn primary">Unlock</button>
-      </div>
-
-      <div id="pwMessage" class="small err" aria-live="polite"></div>
-
-      <div id="modalHint" class="hint small" style="display:none;margin-top:10px"></div>
-
-      <div id="shareRow" style="margin-top:12px;display:none;gap:8px;align-items:center">
-        <input id="tokenField" readonly style="flex:1;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" />
-        <button id="copyBtn" class="btn">Copy</button>
+    <div class="nav">
+      <a href="index.html">← Home</a>
+      <div>
+        <button id="prevBtn">Prev</button>
+        <button id="nextBtn">Next</button>
       </div>
     </div>
-  </div>
+  </main>
+</div>
 
-  <script src="script.js"></script>
-  <script>
-    (async function initPage(){
-      await window.clues_initPromise;
-      const params = new URLSearchParams(window.location.search);
-      const p = Math.max(0, parseInt(params.get('p')||'0',10));
-      const v = params.get('v');
-      if (v) window.clues_applyTokenFromURL(v);
-      window.clues_navigateTo(p);
-    })();
-  </script>
+<div id="modal" class="modal">
+  <div class="card">
+    <h2>Unlock Page</h2>
+    <p id="hintText" class="small"></p>
+    <input id="pwInput" type="password" placeholder="Password"/>
+    <div class="actions">
+      <button id="submitPw">Unlock</button>
+    </div>
+    <div id="pwError" class="err"></div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+(async () => {
+  await window.clues_initPromise;
+  const p = parseInt(new URLSearchParams(location.search).get("p") || "0");
+  window.clues_navigateTo(p);
+})();
+</script>
 </body>
 </html>
