@@ -1,38 +1,58 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Quiet Pages</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Document Reader — Home</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Quiet Pages</h1>
-    <div id="status" class="status">Loading…</div>
-  </header>
+  <main class="wrap">
+    <header class="header">
+      <h1 class="site-title">Document Reader</h1>
+      <div id="status" class="status">Loading…</div>
+    </header>
 
-  <main>
-    <p class="lead">Begin reading. Some pages open only after the one before them.</p>
-    <div id="pagesList" class="pages-list"></div>
+    <section class="intro">
+      <p class="lead">Welcome — select a page to read. Pages 1–2 are public; later pages require the previous page's password (or will auto-unlock on schedule).</p>
+    </section>
+
+    <section id="pagesList" class="pages-list">Loading pages…</section>
+
+    <footer class="foot">
+      <small>Tip: passwords and visited state are stored locally. Use the Share Access Link to sync unlocked pages on another device.</small>
+    </footer>
   </main>
-</div>
 
-<script src="script.js"></script>
-<script>
-(async () => {
-  await window.clues_initPromise;
-  const list = document.getElementById("pagesList");
-  window.clues_pages.forEach((p, i) => {
-    const a = document.createElement("a");
-    a.href = `page.html?p=${i}`;
-    a.textContent = `Page ${i+1}`;
-    a.className = "page-link";
-    list.appendChild(a);
-  });
-  status.innerText = "Ready";
-})();
-</script>
+  <script src="script.js"></script>
+  <script>
+    (async function () {
+      await window.clues_initPromise;
+      const pages = window.clues_pages || [];
+      const container = document.getElementById('pagesList');
+      container.innerHTML = '';
+      const v = new URLSearchParams(window.location.search).get('v');
+
+      pages.forEach((p, i) => {
+        const row = document.createElement('div');
+        row.className = 'page-row';
+
+        const link = document.createElement('a');
+        link.className = 'page-link';
+        link.href = `page.html?p=${i}` + (v ? `&v=${encodeURIComponent(v)}` : '');
+        link.innerText = `Page ${i+1}${p.title ? ' — ' + p.title : ''}`;
+
+        const meta = document.createElement('div');
+        meta.className = 'page-meta';
+        meta.innerText = (i <= 1) ? 'Open' : 'Locked (sequential)';
+
+        row.appendChild(link);
+        row.appendChild(meta);
+        container.appendChild(row);
+      });
+
+      document.getElementById('status').innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
+    })();
+  </script>
 </body>
 </html>
