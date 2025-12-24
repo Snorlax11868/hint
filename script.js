@@ -13,13 +13,6 @@
 */
 
 const MASTER_PASS = 'daniela';
-
-const PASSWORD_FLOW = {
-  2:'bloomrise',
-  3:'paulanka',
-  4:'amberlite',
-  5:'softfracture',
-  6:'violetluck' // STEP 1 ONLY
 const PASSWORD_FLOW = { 2:'bloomrise', 3:'paulanka', 4:'amberlite', 5:'softfracture', 6:'violetluck' };
 const HINTS = {
   2: "I open without sound when someone walks near; not a door, not a bloom — name the thing that wakes on the face like sunrise.",
@@ -29,44 +22,25 @@ const HINTS = {
   6: "Take the royal shade that stands its ground and pair it with a tiny omen that lands like a whisper — combine them into one quiet promise."
 };
 
-const FINAL_PAGE_INDEX = 6;
-const FINAL_ANSWER = 'daniela';
-
-const FINAL_HINT =
-  "Every time I see that smile, I feel at ease. It’s one of those things that makes me trust you without even trying.";
-
-const LS_UNLOCK = 'story_unlocked_v2';
-const LS_UNLOCK_TS = 'story_unlocked_ts_v2';
 // localStorage keys
 const LS_UNLOCK = 'story_unlocked_v2';    // { "2": true }
 const LS_UNLOCK_TS = 'story_unlocked_ts_v2'; // { "2":"2025-12-01T00:00:00.000Z" }
 const LS_VISITED = 'story_visited_v2';
 const LS_ATTEMPTS = 'story_attempts_v2';
-const LS_PAGE7_LOCK = 'page7_lock_until';
 
 let pages = [];
 let unlocked = {};
-@@ -37,226 +35,286 @@ let visited = {};
+let unlockTimestamps = {};
+let visited = {};
 let attempts = {};
 let currentIdx = 0;
 
-/* ---------------- STATE ---------------- */
-
 function loadState(){
-  unlocked = JSON.parse(localStorage.getItem(LS_UNLOCK) || '{}');
-  unlockTimestamps = JSON.parse(localStorage.getItem(LS_UNLOCK_TS) || '{}');
-  visited = JSON.parse(localStorage.getItem(LS_VISITED) || '{}');
-  attempts = JSON.parse(localStorage.getItem(LS_ATTEMPTS) || '{}');
   try{ unlocked = JSON.parse(localStorage.getItem(LS_UNLOCK)) || {}; }catch(e){ unlocked = {}; }
   try{ unlockTimestamps = JSON.parse(localStorage.getItem(LS_UNLOCK_TS)) || {}; }catch(e){ unlockTimestamps = {}; }
   try{ visited = JSON.parse(localStorage.getItem(LS_VISITED)) || {}; }catch(e){ visited = {}; }
   try{ attempts = JSON.parse(localStorage.getItem(LS_ATTEMPTS)) || {}; }catch(e){ attempts = {}; }
 }
-function saveState(){
-  localStorage.setItem(LS_UNLOCK, JSON.stringify(unlocked));
-  localStorage.setItem(LS_UNLOCK_TS, JSON.stringify(unlockTimestamps));
-  localStorage.setItem(LS_VISITED, JSON.stringify(visited));
-  localStorage.setItem(LS_ATTEMPTS, JSON.stringify(attempts));
 function saveState(){ localStorage.setItem(LS_UNLOCK, JSON.stringify(unlocked)); localStorage.setItem(LS_UNLOCK_TS, JSON.stringify(unlockTimestamps)); localStorage.setItem(LS_VISITED, JSON.stringify(visited)); localStorage.setItem(LS_ATTEMPTS, JSON.stringify(attempts)); }
 
 // token helpers
@@ -83,12 +57,6 @@ function applyTokenString(v){
   try{ const dec = atob(v); const arr = JSON.parse(dec); if (Array.isArray(arr)) { arr.forEach(n=>{ unlocked[n]=true; visited[n]=true; unlockTimestamps[n] = unlockTimestamps[n] || new Date().toISOString(); }); saveState(); return true; } } catch(e){}
   return false;
 }
-
-/* ---------------- TIME BACKUP ---------------- */
-
-function firstOfCurrentMonth(){
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1);
 function getVParam(){ return new URLSearchParams(window.location.search).get('v'); }
 function buildTokenFromUnlocked(){ const ks = Object.keys(unlocked).filter(k=>unlocked[k]).map(k=>parseInt(k)).sort((a,b)=>a-b); if(!ks.length) return ''; return ks.join(','); }
 function tokenURLFor(v){ const url = new URL(window.location.href); url.searchParams.set('v', v); return url.toString(); }
@@ -98,9 +66,6 @@ function firstOfCurrentMonthLocal(){
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
 }
-function firstOfNextMonthFrom(ts){
-  const d = new Date(ts);
-  return new Date(d.getFullYear(), d.getMonth()+1, 1);
 function firstOfMonthAfterDateLocal(dateIso){
   const d = new Date(dateIso);
   // next month first
@@ -112,9 +77,6 @@ function nowIsOnOrAfter(dateObj){
 
 // Apply monthly backup unlocks (Option 3A)
 function applyMonthlyBackups(){
-  if (!unlocked[2] && new Date() >= firstOfCurrentMonth()){
-    unlocked[2] = true;
-    unlockTimestamps[2] = new Date().toISOString();
   // Page 3 (index 2): unlock if now >= first of current month
   if (pages.length > 2){
     const idx = 2;
@@ -126,35 +88,24 @@ function applyMonthlyBackups(){
       }
     }
   }
-  for (let i=3;i<pages.length;i++){
   // For pages >2: if previous page has unlock timestamp, compute first-of-month after that ts
   for (let i = 3; i < pages.length; i++){
     if (unlocked[i]) continue;
-    const prevTs = unlockTimestamps[i-1];
-    if (prevTs && new Date() >= firstOfNextMonthFrom(prevTs)){
     const prev = i - 1;
     const prevTs = unlockTimestamps[prev];
     if (!prevTs) continue; // can't compute until prev unlocked
     const unlockDate = firstOfMonthAfterDateLocal(prevTs);
     if (nowIsOnOrAfter(unlockDate)){
       unlocked[i] = true;
-      unlockTimestamps[i] = new Date().toISOString();
       unlockTimestamps[i] = unlockTimestamps[i] || new Date().toISOString();
     }
   }
   saveState();
 }
 
-/* ---------------- INIT ---------------- */
-
-window.clues_initPromise = (async ()=>{
 // fetch pages.json
 window.clues_initPromise = (async function init(){
   loadState();
-  const r = await fetch('pages.json');
-  const j = await r.json();
-  pages = j.pages || [];
-  applyMonthlyBackups();
   try {
     const r = await fetch('pages.json');
     const json = await r.json();
@@ -174,23 +125,10 @@ window.clues_initPromise = (async function init(){
   }
 })();
 
-/* ---------------- HELPERS ---------------- */
-
 // helpers
 const $ = id => document.getElementById(id);
-function escapeHtml(s){
-  return String(s).replace(/[&<>"']/g,c=>({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
-
-/* ---------------- TYPEWRITER ---------------- */
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 
-let skip=false;
-async function typewriter(el,text){
-  if (visited[currentIdx]){
-    el.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
 // typewriter (skip when visited)
 let skipFlag = false;
 async function typewriterTo(container, text, speed=22){
@@ -198,27 +136,16 @@ async function typewriterTo(container, text, speed=22){
     container.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
     return;
   }
-  el.innerHTML='';
-  let i=0;
-  skip=false;
-  return new Promise(res=>{
   container.innerHTML = '';
   skipFlag = false;
   return new Promise(resolve=>{
     let i=0;
     function step(){
-      if (skip || i>=text.length){
-        el.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
-        visited[currentIdx]=true;
-        saveState();
-        res();
       if (skipFlag) {
         container.innerHTML = escapeHtml(text).replace(/\n/g,'<br>');
         visited[currentIdx]=true; saveState(); resolve();
         return;
       }
-      el.innerHTML+=escapeHtml(text[i++]).replace(/\n/g,'<br>');
-      setTimeout(step,22);
       if (i < text.length){
         container.innerHTML += escapeHtml(text.charAt(i)).replace(/\n/g,'<br>');
         i++; setTimeout(step, speed);
@@ -229,49 +156,6 @@ async function typewriterTo(container, text, speed=22){
     step();
   });
 }
-window.onclick=window.onkeydown=()=>skip=true;
-
-/* ---------------- PASSWORD MODAL ---------------- */
-
-function openPasswordModalFor(idx){
-  const modal=$('modal');
-  const pw=$('pwInput');
-  const finalPw=$('finalPwInput');
-  const msg=$('pwMessage');
-  const hint=$('modalHint');
-
-  modal.style.display='flex';
-  pw.value='';
-  msg.innerText='';
-  hint.style.display='none';
-  finalPw.style.display='none';
-
-  attempts[idx]=attempts[idx]||0;
-
-  $('submitPw').onclick=()=>{
-    const now=Date.now();
-    const lockUntil=localStorage.getItem(LS_PAGE7_LOCK);
-
-    if (idx===FINAL_PAGE_INDEX && lockUntil && now<lockUntil){
-      msg.innerText='Try again later.';
-      return;
-    }
-
-    const val=pw.value.trim().toLowerCase();
-    const finalVal=finalPw.value.trim().toLowerCase();
-
-    // MASTER (disabled for page 7)
-    if (val===MASTER_PASS && idx!==FINAL_PAGE_INDEX){
-      pages.forEach((_,i)=>{
-        unlocked[i]=true;
-        visited[i]=true;
-        unlockTimestamps[i]=new Date().toISOString();
-      });
-      saveState();
-      modal.style.display='none';
-      renderPageIndex(idx);
-      return;
-    }
 window.addEventListener('click', ()=> skipFlag = true);
 window.addEventListener('keydown', ()=> skipFlag = true);
 
@@ -292,17 +176,6 @@ function renderIndexList(){
   const st = $('status'); if (st) st.innerText = `Loaded ${pages.length} page${pages.length!==1?'s':''}`;
 }
 
-    // PAGE 7 STEP 1
-    if (idx===FINAL_PAGE_INDEX && !unlocked['p7step1']){
-      if (val==='violetluck'){
-        unlocked['p7step1']=true;
-        saveState();
-        finalPw.style.display='block';
-        msg.innerText='Put final guess on who.';
-        return;
-      }
-      return fail();
-    }
 // check if user can attempt open of target page (sequential rule)
 function canAttemptOpen(targetIdx){
   if (targetIdx <= 1) return true;
@@ -314,18 +187,6 @@ function canAttemptOpen(targetIdx){
   return !!unlocked[prev] || !!visited[prev];
 }
 
-    // PAGE 7 STEP 2
-    if (idx===FINAL_PAGE_INDEX && unlocked['p7step1']){
-      if (finalVal===FINAL_ANSWER){
-        unlocked[idx]=true;
-        visited[idx]=true;
-        unlockTimestamps[idx]=new Date().toISOString();
-        saveState();
-        modal.style.display='none';
-        renderPageIndex(idx);
-        return;
-      }
-      return fail();
 // open password modal for target
 function openPasswordModalFor(targetIdx){
   const modal = $('modal');
@@ -347,12 +208,6 @@ function openPasswordModalFor(targetIdx){
       for (let i=0;i<pages.length;i++){ unlocked[i]=true; visited[i]=true; unlockTimestamps[i] = unlockTimestamps[i] || new Date().toISOString(); }
       saveState(); modal.style.display='none'; renderPageIndex(targetIdx); return;
     }
-
-    // NORMAL PAGE
-    if (val===PASSWORD_FLOW[idx]){
-      unlocked[idx]=true;
-      visited[idx]=true;
-      unlockTimestamps[idx]=new Date().toISOString();
     const correct = (PASSWORD_FLOW[targetIdx] || '').toLowerCase();
     if (correct && val === correct){
       unlocked[targetIdx] = true;
@@ -360,25 +215,9 @@ function openPasswordModalFor(targetIdx){
       visited[targetIdx] = true;
       saveState();
       modal.style.display='none';
-      renderPageIndex(idx);
       renderPageIndex(targetIdx);
       return;
     }
-
-    fail();
-  };
-
-  function fail(){
-    attempts[idx]++;
-    saveState();
-    msg.innerText='Incorrect.';
-
-    if (idx===FINAL_PAGE_INDEX && attempts[idx]===1){
-      localStorage.setItem(LS_PAGE7_LOCK, Date.now()+2*60*60*1000);
-    }
-    if (idx===FINAL_PAGE_INDEX && attempts[idx]>=3){
-      hint.style.display='block';
-      hint.innerText=FINAL_HINT;
     attempts[targetIdx] = (attempts[targetIdx]||0) + 1; saveState(); msg.innerText='Incorrect password.';
     if (attempts[targetIdx] >= 3){
       modalHint.style.display = 'block';
@@ -386,35 +225,28 @@ function openPasswordModalFor(targetIdx){
     }
   }
 
-  $('cancelPw').onclick=()=>modal.style.display='none';
   $('submitPw').onclick = submit;
   $('cancelPw').onclick = ()=> { modal.style.display='none'; msg.innerText=''; };
   $('copyBtn').onclick = async ()=> { const txt = tokenField.value; if(!txt) return; try{ await navigator.clipboard.writeText(txt); $('copyBtn').innerText='Copied'; setTimeout(()=>$('copyBtn').innerText='Copy',1200);}catch(e){ alert('Copy failed'); } };
   pwInput.onkeydown = (e)=>{ if (e.key === 'Enter') submit(); if (e.key === 'Escape') modal.style.display='none'; };
 }
 
-/* ---------------- PAGE RENDER ---------------- */
 // helpers for tokens
 function tokenURLFor(v){ const u = new URL(window.location.href); u.searchParams.set('v', v); return u.toString(); }
 
 // render a page (page.html)
 function renderPageIndex(idx){
-  currentIdx=idx;
-  applyMonthlyBackups();
   currentIdx = idx;
   const contentEl = $('content'); const status = $('status');
   if (!contentEl || !status) return;
   status.innerText = `Page ${idx+1} / ${pages.length}`;
   const page = pages[idx] || { title:'', content:'' };
 
-  const page=pages[idx];
-  $('status').innerText=`Page ${idx+1} / ${pages.length}`;
   // run monthly backups each render
   applyMonthlyBackups();
 
   // If the page is subject to password flow and not unlocked
   if (PASSWORD_FLOW[idx] && !unlocked[idx]){
-    $('content').innerHTML='<p class="small">(Locked)</p>';
     // ensure sequential precondition
     if (!canAttemptOpen(idx)){
       status.innerText = `Page ${idx+1} is locked until the previous page is completed.`;
@@ -431,22 +263,13 @@ function renderPageIndex(idx){
     return;
   }
 
-  if (visited[idx]){
-    $('content').innerHTML=escapeHtml(page.content).replace(/\n/g,'<br>');
-  } else {
-    typewriter($('content'),page.content);
-  }
   contentEl.style.pointerEvents='auto';
   if (visited[idx]) contentEl.innerHTML = escapeHtml(page.content).replace(/\n/g,'<br>');
   else typewriterTo(contentEl, page.content, 22);
 
-  $('prevBtn').disabled=idx===0;
-  $('nextBtn').disabled=idx===pages.length-1;
   setupNavButtons(idx);
 }
 
-  $('prevBtn').onclick=()=>location.href=`page.html?p=${idx-1}`;
-  $('nextBtn').onclick=()=>location.href=`page.html?p=${idx+1}`;
 function setupNavButtons(idx){
   const prev = $('prevBtn'), next = $('nextBtn'), home = $('homeLink'), shareBtn = $('shareBtn');
   if (prev){ prev.disabled = idx <= 0; prev.onclick = ()=> { if (idx>0) location.href = 'page.html?p=' + (idx-1) + (getVParam()? '&v='+encodeURIComponent(getVParam()): ''); }; }
@@ -471,7 +294,6 @@ function setupNavButtons(idx){
   }
 }
 
-/* ---------------- BOOT ---------------- */
 // apply v param helper wrapper (exposed)
 function applyVFromURL(){
   const v = getVParam();
@@ -484,12 +306,9 @@ window.clues_applyTokenFromURL = applyTokenString;
 window.clues_navigateTo = renderPageIndex;
 window.clues_pages = pages;
 
-(async ()=>{
 // boot logic for index/page
 (async function boot(){
   await window.clues_initPromise;
-  const p=parseInt(new URLSearchParams(location.search).get('p')||0,10);
-  renderPageIndex(p);
   const path = window.location.pathname.split('/').pop();
   if (path === '' || path === 'index.html') renderIndexList();
   if (path === 'page.html') {
