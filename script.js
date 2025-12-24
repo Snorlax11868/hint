@@ -1,3 +1,17 @@
+/* Final script.js — Sequential + Monthly backup (Option 3A), local device time
+   - Pages expected in pages.json as array under "pages"
+   - Page indices: 0..N-1 (we have 0..6)
+   - Master pass: 'daniela' (case-insensitive)
+   - Passwords required to open page i (i>=2) are in PASSWORD_FLOW[i]
+   - Time backup:
+       - page 2 (index 2) auto-unlocks when now >= firstOfCurrentMonth
+       - page i>2 auto-unlocks when now >= firstOfMonthAfter(prevPageUnlockTimestamp)
+   - Unlock timestamps stored in LS_UNLOCK_TS
+   - Hints show after 3 failed attempts
+   - Typewriter runs first view, skipped on revisit
+   - Token support via ?v=ALL or ?v=2,3
+*/
+
 const MASTER_PASS = 'daniela';
 const PASSWORD_FLOW = { 2:'bloomrise', 3:'paulanka', 4:'amberlite', 5:'softfracture', 6:'violetluck' };
 const HINTS = {
